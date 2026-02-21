@@ -1,8 +1,7 @@
 # ── Build stage ──
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
-# Prisma needs OpenSSL; bcrypt needs build tools on Alpine
-RUN apk add --no-cache openssl python3 make g++
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -20,10 +19,9 @@ COPY src ./src/
 RUN npm run build
 
 # ── Production stage ──
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
-# Prisma needs OpenSSL; bcrypt needs build tools on Alpine
-RUN apk add --no-cache openssl python3 make g++
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -41,9 +39,7 @@ COPY --from=builder /app/dist ./dist/
 # Copy static files (landing page)
 COPY src/public ./dist/public/
 
-# Create startup script
-RUN printf '#!/bin/sh\necho "Running prisma db push..."\nnpx prisma db push --skip-generate 2>&1 || echo "Warning: db push failed"\necho "Starting server..."\nexec node dist/index.js\n' > /app/start.sh && chmod +x /app/start.sh
-
 EXPOSE 3456
 
-CMD ["/app/start.sh"]
+# Run migrations then start
+CMD sh -c "npx prisma db push --skip-generate 2>&1 || true; echo 'Starting server...'; node dist/index.js"
