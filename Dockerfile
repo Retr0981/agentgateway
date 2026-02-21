@@ -42,4 +42,4 @@ COPY src/public ./dist/public/
 EXPOSE 3456
 
 # Run migrations then start
-CMD sh -c "npx prisma db push --skip-generate 2>&1 || true; echo 'Starting server...'; node dist/index.js"
+CMD ["node", "dist/index.js"]
