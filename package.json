@@ -1,7 +1,7 @@
 {
-  "name": "agent-trust-service",
+  "name": "agenttrust",
   "version": "1.0.0",
-  "description": "API service for verifying AI agent trustworthiness",
+  "description": "The trust layer for the AI agent economy. Reputation scoring, staking, vouching, and cryptographic certificates for AI agents.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn src/index.ts",
@@ -17,10 +17,27 @@
     "agent",
     "trust",
     "verification",
-    "api"
+    "reputation",
+    "staking",
+    "vouching",
+    "certificate",
+    "jwt",
+    "gateway",
+    "middleware",
+    "captcha-alternative",
+    "ai-agents",
+    "machine-to-machine"
   ],
-  "author": "",
+  "author": "AgentTrust",
   "license": "MIT",
+  "homepage": "https://github.com/mmsadek96/agentgateway#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmsadek96/agentgateway.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mmsadek96/agentgateway/issues"
+  },
   "dependencies": {
     "@prisma/client": "^5.10.0",
     "bcrypt": "^5.1.1",

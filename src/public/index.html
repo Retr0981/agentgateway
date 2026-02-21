@@ -562,6 +562,7 @@
         <li><a href="#how-it-works">How It Works</a></li>
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="/docs">API Docs</a></li>
+        <li><a href="https://github.com/mmsadek96/agentgateway" target="_blank">GitHub</a></li>
       </ul>
       <a href="/docs" class="btn btn-primary">Get Started</a>
     </div>
@@ -727,7 +728,7 @@
       </div>
       <div class="code-block">
         <pre><code><span style="color: #64748b;">// 1. Register and get your API key</span>
-<span style="color: #c084fc;">const</span> <span style="color: #60a5fa;">response</span> = <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://api.agenttrust.io/developers/register'</span>, {
+<span style="color: #c084fc;">const</span> <span style="color: #60a5fa;">response</span> = <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://agentgateway-6f041c655eb3.herokuapp.com/developers/register'</span>, {
   method: <span style="color: #34d399;">'POST'</span>,
   headers: { <span style="color: #34d399;">'Content-Type'</span>: <span style="color: #34d399;">'application/json'</span> },
   body: JSON.stringify({
@@ -738,7 +739,7 @@
 <span style="color: #c084fc;">const</span> { apiKey } = <span style="color: #c084fc;">await</span> response.json();
 
 <span style="color: #64748b;">// 2. Register an agent</span>
-<span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://api.agenttrust.io/developers/agents'</span>, {
+<span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://agentgateway-6f041c655eb3.herokuapp.com/developers/agents'</span>, {
   method: <span style="color: #34d399;">'POST'</span>,
   headers: {
     <span style="color: #34d399;">'Authorization'</span>: <span style="color: #34d399;">`Bearer ${apiKey}`</span>,
@@ -748,7 +749,7 @@
 });
 
 <span style="color: #64748b;">// 3. Verify before sensitive actions</span>
-<span style="color: #c084fc;">const</span> <span style="color: #60a5fa;">verification</span> = <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://api.agenttrust.io/verify'</span>, {
+<span style="color: #c084fc;">const</span> <span style="color: #60a5fa;">verification</span> = <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://agentgateway-6f041c655eb3.herokuapp.com/verify'</span>, {
   method: <span style="color: #34d399;">'POST'</span>,
   headers: {
     <span style="color: #34d399;">'Authorization'</span>: <span style="color: #34d399;">`Bearer ${apiKey}`</span>,
@@ -768,7 +769,7 @@
   executeOrder();
 
   <span style="color: #64748b;">// 4. Report the outcome</span>
-  <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://api.agenttrust.io/report'</span>, {
+  <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://agentgateway-6f041c655eb3.herokuapp.com/report'</span>, {
     method: <span style="color: #34d399;">'POST'</span>,
     headers: {
       <span style="color: #34d399;">'Authorization'</span>: <span style="color: #34d399;">`Bearer ${apiKey}`</span>,
@@ -912,9 +913,9 @@
         <div>© 2026 AgentTrust. All rights reserved.</div>
         <div class="footer-links">
           <a href="/docs">API Docs</a>
+          <a href="https://github.com/mmsadek96/agentgateway" target="_blank">GitHub</a>
           <a href="#">Privacy</a>
           <a href="#">Terms</a>
-          <a href="#">Contact</a>
         </div>
       </div>
     </div>

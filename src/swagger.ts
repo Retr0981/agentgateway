@@ -4,11 +4,15 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Agent Trust Service API',
+      title: 'AgentTrust API',
       version: '1.0.0',
-      description: 'API for verifying AI agent trustworthiness using reputation, staking, and vouching mechanisms.',
+      description: 'The trust layer for the AI agent economy. Reputation scoring, staking, vouching, and cryptographic certificates for AI agents.',
     },
     servers: [
+      {
+        url: 'https://agentgateway-6f041c655eb3.herokuapp.com',
+        description: 'Production server',
+      },
       {
         url: 'http://localhost:3000',
         description: 'Development server',

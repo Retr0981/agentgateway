@@ -1,7 +1,7 @@
 {
   "name": "@agent-trust/sdk",
   "version": "1.0.0",
-  "description": "AI Agent SDK — request clearance certificates and interact with Agent Trust Gateways",
+  "description": "Client SDK for AI agents to request trust certificates and interact with AgentTrust Gateways. Zero dependencies.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -13,9 +13,24 @@
     "agent",
     "trust",
     "sdk",
-    "client"
+    "client",
+    "certificate",
+    "jwt",
+    "reputation",
+    "ai-agents",
+    "agenttrust"
   ],
+  "author": "AgentTrust",
   "license": "MIT",
+  "homepage": "https://github.com/mmsadek96/agentgateway/tree/main/packages/agent-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmsadek96/agentgateway.git",
+    "directory": "packages/agent-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/mmsadek96/agentgateway/issues"
+  },
   "dependencies": {},
   "devDependencies": {
     "typescript": "^5.3.3"

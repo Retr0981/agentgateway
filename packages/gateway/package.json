@@ -1,7 +1,7 @@
 {
   "name": "@agent-trust/gateway",
   "version": "1.0.0",
-  "description": "AI Agent Gateway middleware — install on any Express app to let trusted AI agents interact with your site",
+  "description": "Express middleware that lets trusted AI agents interact with your website. Verifies cryptographic certificates, checks reputation scores, and reports behavior.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -14,9 +14,24 @@
     "gateway",
     "trust",
     "middleware",
-    "express"
+    "express",
+    "jwt",
+    "certificate",
+    "reputation",
+    "ai-agents",
+    "agenttrust"
   ],
+  "author": "AgentTrust",
   "license": "MIT",
+  "homepage": "https://github.com/mmsadek96/agentgateway/tree/main/packages/gateway#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmsadek96/agentgateway.git",
+    "directory": "packages/gateway"
+  },
+  "bugs": {
+    "url": "https://github.com/mmsadek96/agentgateway/issues"
+  },
   "peerDependencies": {
     "express": "^4.18.0"
   },
