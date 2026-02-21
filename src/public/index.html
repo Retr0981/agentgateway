@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Trust Service - Trust Verification for AI Agents</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #0f172a;
+      --accent: #10b981;
+      --light: #f8fafc;
+      --gray: #64748b;
+      --border: #e2e8f0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.6;
+      color: var(--secondary);
+      background: var(--light);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Navigation */
+    nav {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--gray);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      font-size: 16px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: white;
+    }
+
+    .hero-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .hero h1 {
+      font-size: 48px;
+      line-height: 1.2;
+      margin-bottom: 24px;
+    }
+
+    .hero p {
+      font-size: 20px;
+      opacity: 0.9;
+      margin-bottom: 32px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+    }
+
+    .hero-code {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 24px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 14px;
+      overflow-x: auto;
+    }
+
+    .hero-code .comment {
+      color: #64748b;
+    }
+
+    .hero-code .keyword {
+      color: #c084fc;
+    }
+
+    .hero-code .string {
+      color: #34d399;
+    }
+
+    .hero-code .variable {
+      color: #60a5fa;
+    }
+
+    /* Features Section */
+    .features {
+      padding: 80px 0;
+      background: white;
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-title h2 {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+
+    .section-title p {
+      color: var(--gray);
+      font-size: 18px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+
+    .feature-card {
+      padding: 32px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.1);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--primary), #60a5fa);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    .feature-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--gray);
+    }
+
+    /* How It Works */
+    .how-it-works {
+      padding: 80px 0;
+      background: var(--light);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-top: 40px;
+    }
+
+    .step {
+      text-align: center;
+      padding: 24px;
+    }
+
+    .step-number {
+      width: 48px;
+      height: 48px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 auto 16px;
+    }
+
+    .step h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      color: var(--gray);
+      font-size: 14px;
+    }
+
+    /* Trust Mechanisms */
+    .trust-mechanisms {
+      padding: 80px 0;
+      background: white;
+    }
+
+    .mechanisms-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 32px;
+    }
+
+    .mechanism {
+      padding: 32px;
+      background: var(--light);
+      border-radius: 12px;
+    }
+
+    .mechanism h3 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .mechanism h3 span {
+      font-size: 28px;
+    }
+
+    .mechanism p {
+      color: var(--gray);
+      margin-bottom: 16px;
+    }
+
+    .mechanism-details {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .mechanism-details code {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    /* Pricing */
+    .pricing {
+      padding: 80px 0;
+      background: var(--light);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      margin-top: 40px;
+    }
+
+    .pricing-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--primary);
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.2);
+      transform: scale(1.05);
+    }
+
+    .pricing-card h3 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .pricing-card .price {
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 16px 0;
+    }
+
+    .pricing-card .price span {
+      font-size: 16px;
+      color: var(--gray);
+    }
+
+    .pricing-card ul {
+      list-style: none;
+      text-align: left;
+      margin: 24px 0;
+    }
+
+    .pricing-card li {
+      padding: 8px 0;
+      color: var(--gray);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pricing-card li::before {
+      content: "✓";
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    /* Code Examples */
+    .code-examples {
+      padding: 80px 0;
+      background: var(--secondary);
+      color: white;
+    }
+
+    .code-examples .section-title h2,
+    .code-examples .section-title p {
+      color: white;
+    }
+
+    .code-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .code-tab {
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid #475569;
+      color: #94a3b8;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .code-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .code-block {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    .code-block pre {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* API Reference */
+    .api-reference {
+      padding: 80px 0;
+      background: white;
+    }
+
+    .endpoint {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      background: var(--light);
+      cursor: pointer;
+    }
+
+    .endpoint-method {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .endpoint-method.post {
+      background: #059669;
+      color: white;
+    }
+
+    .endpoint-method.get {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .endpoint-path {
+      font-family: monospace;
+      font-weight: 600;
+    }
+
+    .endpoint-desc {
+      color: var(--gray);
+      font-size: 14px;
+    }
+
+    /* CTA Section */
+    .cta {
+      padding: 80px 0;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: white;
+      text-align: center;
+    }
+
+    .cta h2 {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+
+    .cta p {
+      font-size: 18px;
+      opacity: 0.9;
+      margin-bottom: 32px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Footer */
+    footer {
+      padding: 40px 0;
+      background: var(--secondary);
+      color: #94a3b8;
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      color: #94a3b8;
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: white;
+    }
+
+    /* Responsive */
+    @media (max-width: 968px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .mechanisms-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pricing-card.featured {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">AgentTrust</a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="/docs">API Docs</a></li>
+      </ul>
+      <a href="/docs" class="btn btn-primary">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div>
+          <h1>Trust Verification for AI Agents</h1>
+          <p>Make malicious behavior expensive, risky, and traceable. One API call to verify if an AI agent should be trusted.</p>
+          <div class="hero-buttons">
+            <a href="/docs" class="btn btn-primary">View API Docs</a>
+            <a href="#how-it-works" class="btn btn-secondary" style="background: transparent; border-color: white; color: white;">Learn More</a>
+          </div>
+        </div>
+        <div class="hero-code">
+          <span class="comment">// Verify an agent before allowing action</span><br>
+          <span class="keyword">const</span> <span class="variable">result</span> = <span class="keyword">await</span> fetch(<span class="string">'/verify'</span>, {<br>
+          &nbsp;&nbsp;method: <span class="string">'POST'</span>,<br>
+          &nbsp;&nbsp;body: JSON.stringify({<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;agentId: <span class="string">'agent-001'</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;actionType: <span class="string">'place_order'</span><br>
+          &nbsp;&nbsp;})<br>
+          });<br><br>
+          <span class="comment">// Response</span><br>
+          {<br>
+          &nbsp;&nbsp;<span class="string">"allowed"</span>: <span class="keyword">true</span>,<br>
+          &nbsp;&nbsp;<span class="string">"score"</span>: <span class="variable">87</span>,<br>
+          &nbsp;&nbsp;<span class="string">"reason"</span>: <span class="string">"Verified agent with stake"</span><br>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-title">
+        <h2>Why AgentTrust?</h2>
+        <p>Traditional CAPTCHAs filter bots from humans. AgentTrust filters malicious agents from legitimate ones using human trust principles.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3>Reputation System</h3>
+          <p>Agents build trust over time through successful actions. Bad behavior permanently damages their score.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💰</div>
+          <h3>Staking & Collateral</h3>
+          <p>Agents put skin in the game. Malicious behavior becomes economically irrational when there's something to lose.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤝</div>
+          <h3>Vouching Network</h3>
+          <p>Trusted agents can vouch for new ones, creating accountability chains. If someone you vouch for misbehaves, it reflects on you.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Behavior Tracking</h3>
+          <p>Every action is logged and analyzed. Patterns emerge, and suspicious behavior is flagged automatically.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Simple Integration</h3>
+          <p>One API call. Get a trust score. Make your decision. No complex setup, no machine learning to train.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Identity Verification</h3>
+          <p>Verified agents get bonus trust. Anonymous actors face restrictions. Accountability starts with identity.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="section-title">
+        <h2>How It Works</h2>
+        <p>Integrate in minutes, protect your platform from day one.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Register</h3>
+          <p>Create an account and get your API key. Free tier available.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Add Agents</h3>
+          <p>Register agents that will interact with your platform.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Verify</h3>
+          <p>Call /verify before sensitive actions. Get instant trust decisions.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <h3>Report</h3>
+          <p>Report outcomes to improve accuracy. The system learns from every interaction.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Mechanisms -->
+  <section class="trust-mechanisms">
+    <div class="container">
+      <div class="section-title">
+        <h2>Trust Mechanisms</h2>
+        <p>Based on how humans actually build trust with strangers.</p>
+      </div>
+      <div class="mechanisms-grid">
+        <div class="mechanism">
+          <h3><span>📈</span> Reputation Score (0-100)</h3>
+          <p>Every agent starts at 50. Good behavior raises the score, bad behavior lowers it. The score reflects the agent's entire history.</p>
+          <div class="mechanism-details">
+            <strong>Score factors:</strong> Base (50) + Identity (+10) + Stake (+5-15) + Vouches (+2 each, max +20) + Success Rate (up to +20) + Account Age (+1/month, max +10) - Failures (-5 each)
+          </div>
+        </div>
+        <div class="mechanism">
+          <h3><span>💎</span> Staking</h3>
+          <p>Agents can deposit collateral to signal commitment. Higher stakes = higher trust. Malicious behavior can result in stake forfeiture.</p>
+          <div class="mechanism-details">
+            <strong>Example:</strong> Agent stakes $500 → gains +10 reputation bonus. If reported for abuse, stake can be slashed.
+          </div>
+        </div>
+        <div class="mechanism">
+          <h3><span>🔗</span> Vouching</h3>
+          <p>Established agents (score 60+) can vouch for newcomers. This transfers some trust, but also creates accountability.</p>
+          <div class="mechanism-details">
+            <strong>Rules:</strong> Voucher must have score ≥60. Each vouch gives +2 to vouched agent (max +20 total). Vouches can be revoked.
+          </div>
+        </div>
+        <div class="mechanism">
+          <h3><span>✅</span> Identity Verification</h3>
+          <p>Verified agents receive a +10 bonus. Anonymous agents face lower trust ceilings and stricter rate limits.</p>
+          <div class="mechanism-details">
+            <strong>Benefits:</strong> Higher base trust, access to premium features, priority support.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Code Examples -->
+  <section class="code-examples">
+    <div class="container">
+      <div class="section-title">
+        <h2>Quick Start</h2>
+        <p>Get started in under 5 minutes with any language.</p>
+      </div>
+      <div class="code-tabs">
+        <button class="code-tab active">JavaScript</button>
+        <button class="code-tab">Python</button>
+        <button class="code-tab">cURL</button>
+      </div>
+      <div class="code-block">
+        <pre><code><span style="color: #64748b;">// 1. Register and get your API key</span>
+<span style="color: #c084fc;">const</span> <span style="color: #60a5fa;">response</span> = <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://api.agenttrust.io/developers/register'</span>, {
+  method: <span style="color: #34d399;">'POST'</span>,
+  headers: { <span style="color: #34d399;">'Content-Type'</span>: <span style="color: #34d399;">'application/json'</span> },
+  body: JSON.stringify({
+    email: <span style="color: #34d399;">'dev@company.com'</span>,
+    companyName: <span style="color: #34d399;">'My Company'</span>
+  })
+});
+<span style="color: #c084fc;">const</span> { apiKey } = <span style="color: #c084fc;">await</span> response.json();
+
+<span style="color: #64748b;">// 2. Register an agent</span>
+<span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://api.agenttrust.io/developers/agents'</span>, {
+  method: <span style="color: #34d399;">'POST'</span>,
+  headers: {
+    <span style="color: #34d399;">'Authorization'</span>: <span style="color: #34d399;">`Bearer ${apiKey}`</span>,
+    <span style="color: #34d399;">'Content-Type'</span>: <span style="color: #34d399;">'application/json'</span>
+  },
+  body: JSON.stringify({ externalId: <span style="color: #34d399;">'my-agent-001'</span> })
+});
+
+<span style="color: #64748b;">// 3. Verify before sensitive actions</span>
+<span style="color: #c084fc;">const</span> <span style="color: #60a5fa;">verification</span> = <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://api.agenttrust.io/verify'</span>, {
+  method: <span style="color: #34d399;">'POST'</span>,
+  headers: {
+    <span style="color: #34d399;">'Authorization'</span>: <span style="color: #34d399;">`Bearer ${apiKey}`</span>,
+    <span style="color: #34d399;">'Content-Type'</span>: <span style="color: #34d399;">'application/json'</span>
+  },
+  body: JSON.stringify({
+    agentId: <span style="color: #34d399;">'my-agent-001'</span>,
+    actionType: <span style="color: #34d399;">'place_order'</span>,
+    threshold: <span style="color: #f472b6;">70</span>  <span style="color: #64748b;">// Only allow if score >= 70</span>
+  })
+});
+
+<span style="color: #c084fc;">const</span> { allowed, score, reason, actionId } = <span style="color: #c084fc;">await</span> verification.json();
+
+<span style="color: #c084fc;">if</span> (allowed) {
+  <span style="color: #64748b;">// Proceed with the action</span>
+  executeOrder();
+
+  <span style="color: #64748b;">// 4. Report the outcome</span>
+  <span style="color: #c084fc;">await</span> fetch(<span style="color: #34d399;">'https://api.agenttrust.io/report'</span>, {
+    method: <span style="color: #34d399;">'POST'</span>,
+    headers: {
+      <span style="color: #34d399;">'Authorization'</span>: <span style="color: #34d399;">`Bearer ${apiKey}`</span>,
+      <span style="color: #34d399;">'Content-Type'</span>: <span style="color: #34d399;">'application/json'</span>
+    },
+    body: JSON.stringify({
+      actionId,
+      outcome: <span style="color: #34d399;">'success'</span>
+    })
+  });
+} <span style="color: #c084fc;">else</span> {
+  console.log(<span style="color: #34d399;">`Denied: ${reason}`</span>);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- API Reference Preview -->
+  <section class="api-reference">
+    <div class="container">
+      <div class="section-title">
+        <h2>API Reference</h2>
+        <p>Simple, RESTful endpoints. Full documentation available at <a href="/docs">/docs</a>.</p>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method post">POST</span>
+          <span class="endpoint-path">/verify</span>
+          <span class="endpoint-desc">Check if an agent should be trusted for an action</span>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method post">POST</span>
+          <span class="endpoint-path">/report</span>
+          <span class="endpoint-desc">Report the outcome of an action to update reputation</span>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method post">POST</span>
+          <span class="endpoint-path">/developers/register</span>
+          <span class="endpoint-desc">Create account and get API key</span>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method post">POST</span>
+          <span class="endpoint-path">/developers/agents</span>
+          <span class="endpoint-desc">Register a new agent</span>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method get">GET</span>
+          <span class="endpoint-path">/agents/{id}/reputation</span>
+          <span class="endpoint-desc">Get detailed reputation breakdown</span>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method post">POST</span>
+          <span class="endpoint-path">/agents/{id}/stake</span>
+          <span class="endpoint-desc">Add stake/collateral for higher trust</span>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method post">POST</span>
+          <span class="endpoint-path">/agents/{id}/vouch</span>
+          <span class="endpoint-desc">Vouch for another agent</span>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 32px;">
+        <a href="/docs" class="btn btn-primary">View Full API Documentation</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="section-title">
+        <h2>Simple, Usage-Based Pricing</h2>
+        <p>Start free, scale as you grow.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <h3>Free</h3>
+          <div class="price">$0<span>/month</span></div>
+          <ul>
+            <li>1,000 verifications/month</li>
+            <li>5 agents</li>
+            <li>Basic reputation tracking</li>
+            <li>Community support</li>
+          </ul>
+          <a href="/docs" class="btn btn-secondary" style="width: 100%;">Get Started</a>
+        </div>
+        <div class="pricing-card featured">
+          <h3>Starter</h3>
+          <div class="price">$49<span>/month</span></div>
+          <ul>
+            <li>50,000 verifications/month</li>
+            <li>100 agents</li>
+            <li>Staking & vouching</li>
+            <li>Dashboard analytics</li>
+            <li>Email support</li>
+          </ul>
+          <a href="/docs" class="btn btn-primary" style="width: 100%;">Get Started</a>
+        </div>
+        <div class="pricing-card">
+          <h3>Pro</h3>
+          <div class="price">$199<span>/month</span></div>
+          <ul>
+            <li>Unlimited verifications</li>
+            <li>Unlimited agents</li>
+            <li>Custom scoring rules</li>
+            <li>Webhook notifications</li>
+            <li>Priority support</li>
+            <li>SLA guarantee</li>
+          </ul>
+          <a href="/docs" class="btn btn-secondary" style="width: 100%;">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <h2>Ready to Secure Your Platform?</h2>
+      <p>Join developers who trust AgentTrust to filter malicious AI agents. Start free, no credit card required.</p>
+      <a href="/docs" class="btn btn-primary" style="background: white; color: var(--primary);">Get Your API Key</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div>© 2026 AgentTrust. All rights reserved.</div>
+        <div class="footer-links">
+          <a href="/docs">API Docs</a>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

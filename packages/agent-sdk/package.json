@@ -1,0 +1,26 @@
+{
+  "name": "@agent-trust/sdk",
+  "version": "1.0.0",
+  "description": "AI Agent SDK — request clearance certificates and interact with Agent Trust Gateways",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "trust",
+    "sdk",
+    "client"
+  ],
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

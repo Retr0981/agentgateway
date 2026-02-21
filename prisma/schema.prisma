@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  free
+  starter
+  pro
+}
+
+enum AgentStatus {
+  active
+  suspended
+  banned
+}
+
+enum ActionDecision {
+  allowed
+  denied
+}
+
+enum ReputationEventType {
+  success
+  failure
+  vouch_received
+  stake_added
+  abuse_reported
+}
+
+model Developer {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  companyName String   @map("company_name")
+  apiKeyHash  String   @map("api_key_hash")
+  plan        Plan     @default(free)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  agents Agent[]
+
+  @@map("developers")
+}
+
+model Agent {
+  id                String      @id @default(uuid())
+  externalId        String      @map("external_id")
+  developerId       String      @map("developer_id")
+  identityVerified  Boolean     @default(false) @map("identity_verified")
+  reputationScore   Int         @default(50) @map("reputation_score")
+  totalActions      Int         @default(0) @map("total_actions")
+  successfulActions Int         @default(0) @map("successful_actions")
+  failedActions     Int         @default(0) @map("failed_actions")
+  stakeAmount       Decimal     @default(0) @map("stake_amount") @db.Decimal(18, 2)
+  status            AgentStatus @default(active)
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  developer        Developer         @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  actions          Action[]
+  reputationEvents ReputationEvent[]
+  vouchesGiven     Vouch[]           @relation("VoucherAgent")
+  vouchesReceived  Vouch[]           @relation("VouchedAgent")
+  certificates     Certificate[]
+  gatewayReports   GatewayReport[]
+
+  @@unique([developerId, externalId])
+  @@map("agents")
+}
+
+model Vouch {
+  id             String   @id @default(uuid())
+  voucherAgentId String   @map("voucher_agent_id")
+  vouchedAgentId String   @map("vouched_agent_id")
+  weight         Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  voucherAgent Agent @relation("VoucherAgent", fields: [voucherAgentId], references: [id], onDelete: Cascade)
+  vouchedAgent Agent @relation("VouchedAgent", fields: [vouchedAgentId], references: [id], onDelete: Cascade)
+
+  @@unique([voucherAgentId, vouchedAgentId])
+  @@map("vouches")
+}
+
+model Action {
+  id         String         @id @default(uuid())
+  agentId    String         @map("agent_id")
+  actionType String         @map("action_type")
+  decision   ActionDecision
+  reason     String
+  metadata   Json           @default("{}")
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([createdAt])
+  @@map("actions")
+}
+
+model ReputationEvent {
+  id          String              @id @default(uuid())
+  agentId     String              @map("agent_id")
+  eventType   ReputationEventType @map("event_type")
+  scoreChange Int                 @map("score_change")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@map("reputation_events")
+}
+
+model Certificate {
+  id        String   @id @default(uuid())
+  jti       String   @unique
+  agentId   String   @map("agent_id")
+  score     Int
+  issuedAt  DateTime @default(now()) @map("issued_at")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([expiresAt])
+  @@map("certificates")
+}
+
+model GatewayReport {
+  id             String   @id @default(uuid())
+  agentId        String   @map("agent_id")
+  gatewayId      String   @map("gateway_id")
+  certificateJti String   @map("certificate_jti")
+  actionsCount   Int      @map("actions_count")
+  successCount   Int      @map("success_count")
+  failureCount   Int      @map("failure_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([gatewayId])
+  @@map("gateway_reports")
+}
