@@ -17,6 +17,40 @@ export interface GatewayConfig {
 
   /** How often to refresh the station's public key, in ms (default: 3600000 = 1 hour) */
   publicKeyRefreshInterval?: number;
+
+  /** Behavioral tracking configuration (optional — enabled by default) */
+  behavior?: BehaviorConfig;
+}
+
+// ─── Behavioral Tracking Configuration ───
+
+export interface BehaviorConfig {
+  /** Enable/disable behavioral tracking (default: true) */
+  enabled?: boolean;
+
+  /** Session timeout in ms — sessions expire after this idle time (default: 300000 = 5 min) */
+  sessionTimeout?: number;
+
+  /** Max actions per minute before flagging as rapid-fire (default: 30) */
+  maxActionsPerMinute?: number;
+
+  /** Max failed actions before flagging as probing (default: 5) */
+  maxFailuresBeforeFlag?: number;
+
+  /** Max unique action types per minute before flagging as enumeration (default: 10) */
+  maxUniqueActionsPerMinute?: number;
+
+  /** Max repeated identical actions per minute before flagging as automation (default: 10) */
+  maxRepeatedActionsPerMinute?: number;
+
+  /** Score penalty for each behavioral violation (0-100, default: 10) */
+  violationPenalty?: number;
+
+  /** Score threshold below which the agent is blocked mid-session (default: 20) */
+  blockThreshold?: number;
+
+  /** Callback when suspicious behavior is detected */
+  onSuspiciousActivity?: (event: BehaviorEvent) => void;
 }
 
 // ─── Action Definitions ───
@@ -123,8 +157,91 @@ export interface GatewayReportPayload {
   certificateJti: string;
 }
 
-/** Express request with attached agent certificate */
+/** Express request with attached agent certificate and behavior data */
 export interface GatewayRequest extends Request {
   agentCertificate?: CertificatePayload;
   agentToken?: string;
+  /** Live behavioral score for this agent session */
+  behaviorScore?: number;
+  /** Behavioral flags detected in this session */
+  behaviorFlags?: BehaviorFlag[];
+}
+
+// ─── Behavioral Tracking Types ───
+
+export type BehaviorFlag =
+  | 'rapid_fire'           // Too many actions per minute
+  | 'high_failure_rate'    // Many failed actions (probing/brute force)
+  | 'action_enumeration'   // Trying many different action types (scanning)
+  | 'repeated_action'      // Same action with same params (automation)
+  | 'scope_violation'      // Attempted action above score threshold
+  | 'session_anomaly'      // Unusual session pattern
+  | 'burst_detected';      // Sudden spike after idle period
+
+export interface BehaviorEvent {
+  /** The agent ID */
+  agentId: string;
+  /** The agent's external ID */
+  externalId: string;
+  /** Which flag was triggered */
+  flag: BehaviorFlag;
+  /** Human-readable description */
+  description: string;
+  /** The behavioral score at time of event */
+  behaviorScore: number;
+  /** Session stats at time of event */
+  sessionStats: SessionStats;
+  /** Timestamp */
+  timestamp: string;
+}
+
+export interface SessionStats {
+  /** Total actions in this session */
+  totalActions: number;
+  /** Successful actions */
+  successfulActions: number;
+  /** Failed actions */
+  failedActions: number;
+  /** Actions in the last 60 seconds */
+  actionsLastMinute: number;
+  /** Unique action types in the last 60 seconds */
+  uniqueActionsLastMinute: number;
+  /** How long the session has been active (ms) */
+  sessionDuration: number;
+  /** Number of scope violations (tried actions above their score) */
+  scopeViolations: number;
+  /** Number of behavioral flags triggered */
+  flagsTriggered: BehaviorFlag[];
+}
+
+export interface AgentSession {
+  /** The agent's internal ID (from certificate sub) */
+  agentId: string;
+  /** The agent's external ID */
+  externalId: string;
+  /** Session start time */
+  startedAt: number;
+  /** Last activity time */
+  lastActivityAt: number;
+  /** Current behavioral score (starts at 100, decreases with violations) */
+  behaviorScore: number;
+  /** All actions performed in this session */
+  actions: SessionAction[];
+  /** Flags that have been triggered */
+  flags: Set<BehaviorFlag>;
+  /** Whether the agent has been blocked mid-session */
+  blocked: boolean;
+}
+
+export interface SessionAction {
+  /** Action name */
+  actionName: string;
+  /** Action parameters (hashed for comparison) */
+  paramsHash: string;
+  /** Whether it succeeded */
+  success: boolean;
+  /** Whether it was a scope violation */
+  scopeViolation: boolean;
+  /** Timestamp */
+  timestamp: number;
 }

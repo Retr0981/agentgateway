@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { StationClient } from './station-client';
 import { ActionRegistry } from './action-registry';
+import { BehaviorTracker } from './behavior-tracker';
 import { createCertificateMiddleware } from './middleware/certificate';
 import {
   GatewayConfig,
@@ -11,7 +12,8 @@ import {
 
 /**
  * AgentGateway — the core class that website owners instantiate.
- * Creates an Express router with discovery, authentication, and action execution.
+ * Creates an Express router with discovery, authentication, action execution,
+ * and real-time behavioral tracking.
  *
  * Usage:
  *   const gateway = new AgentGateway({ ... });
@@ -20,6 +22,7 @@ import {
 export class AgentGateway {
   private stationClient: StationClient;
   private actionRegistry: ActionRegistry;
+  private behaviorTracker: BehaviorTracker;
   private config: GatewayConfig;
 
   constructor(config: GatewayConfig) {
@@ -30,6 +33,14 @@ export class AgentGateway {
       config.publicKeyRefreshInterval ?? 3600000 // 1 hour default
     );
     this.actionRegistry = new ActionRegistry(config.actions);
+    this.behaviorTracker = new BehaviorTracker(config.behavior ?? {});
+  }
+
+  /**
+   * Get the behavior tracker instance (for monitoring/dashboard).
+   */
+  getBehaviorTracker(): BehaviorTracker {
+    return this.behaviorTracker;
   }
 
   /**
@@ -67,6 +78,20 @@ export class AgentGateway {
       });
     });
 
+    /**
+     * GET /behavior/sessions
+     * Monitoring endpoint — view active agent sessions and their behavioral scores.
+     * Useful for dashboards and real-time monitoring.
+     */
+    router.get('/behavior/sessions', (_req, res) => {
+      res.json({
+        success: true,
+        data: {
+          activeSessions: this.behaviorTracker.getActiveSessions()
+        }
+      });
+    });
+
     // ─── Protected Action Endpoints ───
 
     // Certificate validation middleware
@@ -75,17 +100,62 @@ export class AgentGateway {
     /**
      * POST /actions/:actionName
      * Execute an action. Requires a valid agent certificate.
-     * The gateway checks the agent's score against the action's minimum.
-     * After execution, a behavior report is sent to the station.
+     *
+     * Flow:
+     * 1. Validate certificate (JWT signature + expiry)
+     * 2. Check behavioral score (is agent blocked mid-session?)
+     * 3. Check reputation score vs. action minScore
+     * 4. Validate parameters
+     * 5. Execute handler
+     * 6. Record behavior + report to station
      */
     router.post('/actions/:actionName', validateCert, async (req: GatewayRequest, res) => {
       const { actionName } = req.params;
       const params = req.body.params || {};
       const certificate = req.agentCertificate!;
 
+      // ─── Behavioral Check: Is agent blocked mid-session? ───
+      if (this.behaviorTracker.isBlocked(certificate.sub)) {
+        const stats = this.behaviorTracker.getStats(certificate.sub);
+        res.status(403).json({
+          success: false,
+          error: 'Agent blocked due to suspicious behavior',
+          behaviorScore: 0,
+          flags: stats?.flagsTriggered || [],
+          hint: 'Your behavioral score dropped too low. Wait for session to expire and improve behavior.'
+        });
+
+        // Report the block to station
+        this.stationClient.submitReport({
+          agentId: certificate.sub,
+          gatewayId: this.config.gatewayId,
+          certificateJti: certificate.jti,
+          actions: [{
+            actionType: actionName,
+            outcome: 'failure',
+            metadata: { reason: 'behavioral_block', params },
+            performedAt: new Date().toISOString()
+          }]
+        }).catch(err => {
+          console.error(`[@agent-trust/gateway] Failed to submit report:`, err.message);
+        });
+
+        return;
+      }
+
       // Check if action exists
       const action = this.actionRegistry.getAction(actionName);
       if (!action) {
+        // Record the unknown action attempt
+        this.behaviorTracker.recordAction(
+          certificate.sub,
+          certificate.agentExternalId,
+          actionName,
+          params,
+          false,
+          false
+        );
+
         res.status(404).json({
           success: false,
           error: `Action "${actionName}" not found`,
@@ -103,8 +173,25 @@ export class AgentGateway {
         identityVerified: certificate.identityVerified
       };
 
-      // Execute the action
+      // Check if score meets threshold BEFORE executing
+      const scoreMet = agentContext.score >= action.minScore;
+
+      // Execute the action (actionRegistry handles score check internally)
       const result = await this.actionRegistry.execute(actionName, params, agentContext);
+
+      // ─── Record behavior and analyze ───
+      const behavior = this.behaviorTracker.recordAction(
+        certificate.sub,
+        certificate.agentExternalId,
+        actionName,
+        params,
+        result.success,
+        scoreMet
+      );
+
+      // Attach behavioral data to response
+      req.behaviorScore = behavior.behaviorScore;
+      req.behaviorFlags = behavior.flags;
 
       // Submit report to station asynchronously (fire-and-forget)
       this.stationClient.submitReport({
@@ -114,7 +201,12 @@ export class AgentGateway {
         actions: [{
           actionType: actionName,
           outcome: result.success ? 'success' : 'failure',
-          metadata: { params },
+          metadata: {
+            params,
+            behaviorScore: behavior.behaviorScore,
+            behaviorFlags: behavior.flags,
+            blocked: behavior.blocked
+          },
           performedAt: new Date().toISOString()
         }]
       }).catch(err => {
@@ -122,14 +214,49 @@ export class AgentGateway {
       });
 
       // Return result to the agent
+      const response: Record<string, unknown> = { ...result };
+
+      // Include behavioral info in response
+      if (behavior.flags.length > 0 || behavior.behaviorScore < 80) {
+        response.behavior = {
+          score: behavior.behaviorScore,
+          flags: behavior.flags,
+          warning: behavior.behaviorScore < 50
+            ? 'Your behavioral score is low. Continued suspicious activity will result in blocking.'
+            : behavior.flags.length > 0
+              ? 'Behavioral flags detected. Adjust your interaction pattern.'
+              : undefined
+        };
+      }
+
+      // If agent was just blocked by this action
+      if (behavior.blocked) {
+        res.status(403).json({
+          success: false,
+          error: 'Agent blocked due to suspicious behavior detected during this session',
+          behavior: {
+            score: behavior.behaviorScore,
+            flags: behavior.flags
+          }
+        });
+        return;
+      }
+
       if (result.success) {
-        res.json(result);
+        res.json(response);
       } else {
-        res.status(403).json(result);
+        res.status(403).json(response);
       }
     });
 
     return router;
+  }
+
+  /**
+   * Destroy the gateway and clean up resources.
+   */
+  destroy(): void {
+    this.behaviorTracker.destroy();
   }
 }
 
@@ -147,6 +274,12 @@ export class AgentGateway {
  *         minScore: 30,
  *         parameters: { query: { type: 'string', required: true } },
  *         handler: async (params) => db.search(params.query)
+ *       }
+ *     },
+ *     behavior: {
+ *       maxActionsPerMinute: 20,  // Stricter rate limit
+ *       onSuspiciousActivity: (event) => {
+ *         console.warn('Suspicious agent:', event);
  *       }
  *     }
  *   });

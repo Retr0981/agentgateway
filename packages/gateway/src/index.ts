@@ -3,11 +3,12 @@
 // Install on any Express app to let trusted AI agents interact with your site.
 // Agents present cryptographically signed certificates from the Agent Trust Station.
 // The gateway verifies the certificate, checks the agent's reputation score,
-// and executes the requested action if the agent is trusted.
+// monitors real-time behavior, and executes the requested action if trusted.
 
 export { AgentGateway, createGateway } from './gateway';
 export { StationClient } from './station-client';
 export { ActionRegistry } from './action-registry';
+export { BehaviorTracker } from './behavior-tracker';
 
 export type {
   GatewayConfig,
@@ -18,5 +19,11 @@ export type {
   ActionResult,
   PublicActionInfo,
   DiscoveryPayload,
-  GatewayRequest
+  GatewayRequest,
+  // Behavioral tracking types
+  BehaviorConfig,
+  BehaviorEvent,
+  BehaviorFlag,
+  SessionStats,
+  AgentSession
 } from './types';
