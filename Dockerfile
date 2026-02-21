@@ -1,6 +1,9 @@
 # ── Build stage ──
 FROM node:20-alpine AS builder
 
+# Prisma needs OpenSSL on Alpine
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Install dependencies first (cache layer)
@@ -18,6 +21,9 @@ RUN npm run build
 
 # ── Production stage ──
 FROM node:20-alpine AS runner
+
+# Prisma needs OpenSSL on Alpine
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
