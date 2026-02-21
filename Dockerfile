@@ -1,8 +1,8 @@
 # ── Build stage ──
 FROM node:20-alpine AS builder
 
-# Prisma needs OpenSSL on Alpine
-RUN apk add --no-cache openssl
+# Prisma needs OpenSSL; bcrypt needs build tools on Alpine
+RUN apk add --no-cache openssl python3 make g++
 
 WORKDIR /app
 
@@ -22,8 +22,8 @@ RUN npm run build
 # ── Production stage ──
 FROM node:20-alpine AS runner
 
-# Prisma needs OpenSSL on Alpine
-RUN apk add --no-cache openssl
+# Prisma needs OpenSSL; bcrypt needs build tools on Alpine
+RUN apk add --no-cache openssl python3 make g++
 
 WORKDIR /app
 
