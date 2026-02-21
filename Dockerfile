@@ -41,7 +41,9 @@ COPY --from=builder /app/dist ./dist/
 # Copy static files (landing page)
 COPY src/public ./dist/public/
 
+# Create startup script
+RUN printf '#!/bin/sh\necho "Running prisma db push..."\nnpx prisma db push --skip-generate 2>&1 || echo "Warning: db push failed"\necho "Starting server..."\nexec node dist/index.js\n' > /app/start.sh && chmod +x /app/start.sh
+
 EXPOSE 3456
 
-# Run migrations then start (db push failure is non-fatal to allow healthcheck to pass)
-CMD ["sh", "-c", "npx prisma db push --skip-generate || echo 'Warning: db push failed, continuing...'; node dist/index.js"]
+CMD ["/app/start.sh"]
