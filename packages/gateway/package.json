@@ -1,7 +1,7 @@
 {
   "name": "@agent-trust/gateway",
-  "version": "1.0.0",
-  "description": "Express middleware that lets trusted AI agents interact with your website. Verifies cryptographic certificates, checks reputation scores, and reports behavior.",
+  "version": "1.2.0",
+  "description": "Express middleware that lets trusted AI agents interact with your website. Verifies cryptographic certificates, enforces scope manifests, checks reputation scores, reports behavior, and detects prompt injection attacks with ML.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -19,7 +19,16 @@
     "certificate",
     "reputation",
     "ai-agents",
-    "agenttrust"
+    "agenttrust",
+    "prompt-injection",
+    "ml",
+    "security",
+    "behavioral-analysis",
+    "huggingface",
+    "onnx",
+    "scope",
+    "scope-manifest",
+    "authorization"
   ],
   "author": "AgentTrust",
   "license": "MIT",
@@ -36,8 +45,10 @@
     "express": "^4.18.0"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.8.1",
     "jsonwebtoken": "^9.0.2"
+  },
+  "optionalDependencies": {
+    "@huggingface/transformers": "^3.8.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

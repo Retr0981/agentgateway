@@ -1,7 +1,7 @@
 {
   "name": "@agent-trust/sdk",
-  "version": "1.0.0",
-  "description": "Client SDK for AI agents to request trust certificates and interact with AgentTrust Gateways. Zero dependencies.",
+  "version": "1.2.0",
+  "description": "Client SDK for AI agents to request trust certificates with scope manifests and interact with AgentTrust Gateways. Zero dependencies.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -18,7 +18,10 @@
     "jwt",
     "reputation",
     "ai-agents",
-    "agenttrust"
+    "agenttrust",
+    "scope",
+    "scope-manifest",
+    "authorization"
   ],
   "author": "AgentTrust",
   "license": "MIT",
