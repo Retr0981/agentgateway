@@ -5,10 +5,13 @@
  * models directly in Node.js for advanced threat detection:
  *
  * 1. Prompt Injection Detection — catches jailbreak attempts in agent params
- * 2. Malicious URL Detection — flags phishing/malware URLs in params
  *
  * This module is OPTIONAL. If @huggingface/transformers is not installed,
  * the gateway works fine with rule-based detection only.
+ *
+ * Default model: protectai/deberta-v3-base-prompt-injection-v2 (157K+ downloads)
+ * — DeBERTa-v3-base fine-tuned on prompt injection datasets
+ * — Has proper onnx/ directory for Transformers.js compatibility
  *
  * Install: npm install @huggingface/transformers
  */
@@ -41,10 +44,18 @@ export interface MLAnalyzerConfig {
   /** Minimum text length to analyze for injection (default: 10) */
   minTextLength?: number;
 
-  /** Custom prompt injection model (default: testsavantai/prompt-injection-defender-tiny-v0-onnx) */
+  /**
+   * Custom prompt injection model ID.
+   * Must have onnx/ directory on HuggingFace for Transformers.js compatibility.
+   * Default: protectai/deberta-v3-base-prompt-injection-v2
+   */
   injectionModel?: string;
 
-  /** Custom URL detection model (default: kmack/malicious-url-detection) */
+  /**
+   * Custom URL detection model ID (optional).
+   * Must have onnx/ directory on HuggingFace for Transformers.js compatibility.
+   * Default: none (URL detection uses pattern matching only)
+   */
   urlModel?: string;
 
   /** Callback when an ML threat is detected */
@@ -59,7 +70,7 @@ type PipelineFn = (input: string) => Promise<PipelineResult>;
  * MLBehaviorAnalyzer — optional ML layer for the gateway.
  *
  * Loads HuggingFace models on first use and caches them.
- * Models run locally via ONNX Runtime — no API calls to HuggingFace.
+ * Models run locally via ONNX Runtime — no API calls to HuggingFace after download.
  *
  * Usage:
  *   const ml = new MLBehaviorAnalyzer({ injectionThreshold: 0.9 });
@@ -68,7 +79,7 @@ type PipelineFn = (input: string) => Promise<PipelineResult>;
  *   if (!result.safe) { // block or flag the request }
  */
 export class MLBehaviorAnalyzer {
-  private config: Required<Omit<MLAnalyzerConfig, 'onThreatDetected'>> & Pick<MLAnalyzerConfig, 'onThreatDetected'>;
+  private config: Required<Omit<MLAnalyzerConfig, 'onThreatDetected' | 'urlModel'>> & Pick<MLAnalyzerConfig, 'onThreatDetected' | 'urlModel'>;
   private injectionDetector: PipelineFn | null = null;
   private urlDetector: PipelineFn | null = null;
   private initialized = false;
@@ -81,8 +92,8 @@ export class MLBehaviorAnalyzer {
       injectionThreshold: config.injectionThreshold ?? 0.85,
       urlThreshold: config.urlThreshold ?? 0.80,
       minTextLength: config.minTextLength ?? 10,
-      injectionModel: config.injectionModel ?? 'testsavantai/prompt-injection-defender-tiny-v0-onnx',
-      urlModel: config.urlModel ?? 'kmack/malicious-url-detection',
+      injectionModel: config.injectionModel ?? 'protectai/deberta-v3-base-prompt-injection-v2',
+      urlModel: config.urlModel,
       onThreatDetected: config.onThreatDetected
     };
   }
@@ -120,23 +131,29 @@ export class MLBehaviorAnalyzer {
 
       console.log('[@agent-trust/gateway] Loading ML models for behavioral analysis...');
 
-      // Load prompt injection detector (tiny model, ~5MB)
+      // Load prompt injection detector
+      // protectai/deberta-v3-base-prompt-injection-v2 has onnx/ directory
       const startInjection = Date.now();
       this.injectionDetector = await pipeline(
         'text-classification',
-        this.config.injectionModel,
-        { dtype: 'q8' } as any
+        this.config.injectionModel
       ) as unknown as PipelineFn;
       console.log(`[@agent-trust/gateway] Prompt injection model loaded (${Date.now() - startInjection}ms)`);
 
-      // Load URL detector (~67MB)
-      const startUrl = Date.now();
-      this.urlDetector = await pipeline(
-        'text-classification',
-        this.config.urlModel,
-        { dtype: 'q8' } as any
-      ) as unknown as PipelineFn;
-      console.log(`[@agent-trust/gateway] URL detection model loaded (${Date.now() - startUrl}ms)`);
+      // Optionally load URL detector if a model is specified
+      if (this.config.urlModel) {
+        try {
+          const startUrl = Date.now();
+          this.urlDetector = await pipeline(
+            'text-classification',
+            this.config.urlModel
+          ) as unknown as PipelineFn;
+          console.log(`[@agent-trust/gateway] URL detection model loaded (${Date.now() - startUrl}ms)`);
+        } catch (urlErr: unknown) {
+          const urlMsg = urlErr instanceof Error ? urlErr.message : String(urlErr);
+          console.warn(`[@agent-trust/gateway] URL model failed to load (continuing without it):`, urlMsg);
+        }
+      }
 
       this.available = true;
       console.log('[@agent-trust/gateway] ML behavioral analysis ACTIVE');
@@ -170,7 +187,7 @@ export class MLBehaviorAnalyzer {
    *
    * Checks:
    * 1. All string params for prompt injection attempts
-   * 2. All URL-like params for phishing/malware
+   * 2. All URL-like params for phishing/malware (if URL model is loaded)
    *
    * Returns { safe: true } if no threats detected or ML is unavailable.
    */
@@ -195,10 +212,13 @@ export class MLBehaviorAnalyzer {
       if (value.length >= this.config.minTextLength && this.injectionDetector) {
         try {
           const result = await this.injectionDetector(value);
+          // protectai model uses "INJECTION" label
+          // Other models may use "LABEL_1", "1", or "jailbreak"
           const injectionResult = result.find(
-            r => r.label.toLowerCase().includes('injection') ||
+            r => r.label.toUpperCase() === 'INJECTION' ||
+                 r.label.toLowerCase().includes('injection') ||
                  r.label.toLowerCase().includes('jailbreak') ||
-                 r.label === 'LABEL_1' || // Some models use numeric labels
+                 r.label === 'LABEL_1' ||
                  r.label === '1'
           );
 
@@ -221,7 +241,7 @@ export class MLBehaviorAnalyzer {
         }
       }
 
-      // Check for malicious URLs
+      // Check for malicious URLs (only if URL model is loaded)
       if (this.isUrlLike(value) && this.urlDetector) {
         try {
           const domain = this.extractDomain(value);
