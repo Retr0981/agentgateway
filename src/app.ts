@@ -10,6 +10,7 @@ import verifyRoutes from './routes/verify';
 import certificateRoutes from './routes/certificates';
 import wellknownRoutes from './routes/wellknown';
 import reportRoutes from './routes/reports';
+import dashboardRoutes from './routes/dashboard';
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/', verifyRoutes);
 app.use('/certificates', certificateRoutes);
 app.use('/.well-known', wellknownRoutes);
 app.use('/reports', reportRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentTrust Dashboard — Real-Time Agent Monitoring</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f1117;
+      --bg-card: #1a1d27;
+      --bg-card-hover: #22263a;
+      --border: #2a2f3e;
+      --text: #e2e8f0;
+      --text-dim: #8892a4;
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.15);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --purple: #8b5cf6;
+      --purple-bg: rgba(139, 92, 246, 0.12);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ─── Top Bar ─── */
+    .topbar {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .topbar-logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .topbar-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      background: var(--primary-glow);
+      color: var(--primary);
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--success);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .topbar-link {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+
+    .topbar-link:hover { color: var(--text); }
+
+    /* ─── Layout ─── */
+    .dashboard {
+      padding: 24px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .dashboard-header {
+      margin-bottom: 24px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .dashboard-header p {
+      color: var(--text-dim);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* ─── Stat Cards ─── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+
+    .stat-card:hover {
+      border-color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-value.primary { color: var(--primary); }
+    .stat-value.success { color: var(--success); }
+    .stat-value.danger { color: var(--danger); }
+    .stat-value.warning { color: var(--warning); }
+    .stat-value.purple { color: var(--purple); }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* ─── Grid Layout ─── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    /* ─── Cards ─── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    /* ─── Agent Table ─── */
+    .agent-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .agent-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+    }
+
+    .agent-table td {
+      padding: 12px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .agent-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .agent-table tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    /* ─── Score Badge ─── */
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .score-high {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .score-mid {
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .score-low {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    /* ─── Status Badge ─── */
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-active {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .status-suspended {
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .status-banned {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    /* ─── Action Feed ─── */
+    .action-feed {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .action-item:last-child {
+      border-bottom: none;
+    }
+
+    .action-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .action-icon.allowed {
+      background: var(--success-bg);
+    }
+
+    .action-icon.denied {
+      background: var(--danger-bg);
+    }
+
+    .action-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .action-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .action-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .action-time {
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    /* ─── Chart Container ─── */
+    .chart-container {
+      position: relative;
+      height: 200px;
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 160px;
+      padding-bottom: 24px;
+      position: relative;
+    }
+
+    .bar-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+    }
+
+    .bar {
+      width: 100%;
+      max-width: 40px;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+      min-height: 2px;
+    }
+
+    .bar.allowed {
+      background: var(--success);
+    }
+
+    .bar.denied {
+      background: var(--danger);
+    }
+
+    .bar-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      position: absolute;
+      bottom: 0;
+      transform: translateY(100%);
+      white-space: nowrap;
+    }
+
+    /* ─── Reputation Distribution ─── */
+    .distribution-bars {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      height: 120px;
+      padding: 0 8px;
+    }
+
+    .dist-bar-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .dist-bar {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+      min-height: 2px;
+    }
+
+    .dist-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .dist-count {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    /* ─── Gateway Cards ─── */
+    .gateway-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .gateway-item:last-child {
+      border-bottom: none;
+    }
+
+    .gateway-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: var(--primary);
+    }
+
+    .gateway-stats {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .gateway-stat-value {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ─── Certificate Feed ─── */
+    .cert-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .cert-item:last-child {
+      border-bottom: none;
+    }
+
+    .cert-agent {
+      font-weight: 500;
+    }
+
+    .cert-jti {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .cert-status {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .cert-valid {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .cert-expired {
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .cert-revoked {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    /* ─── Empty State ─── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-dim);
+    }
+
+    .empty-state .icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+    }
+
+    /* ─── Loading ─── */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-dim);
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ─── Refresh Button ─── */
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .refresh-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 1200px) {
+      .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 968px) {
+      .dashboard { padding: 16px; }
+      .topbar { padding: 12px 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  </style>
+</head>
+<body>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="/" class="topbar-logo">AgentTrust</a>
+      <span class="topbar-badge">Dashboard</span>
+    </div>
+    <div class="topbar-right">
+      <div class="live-indicator">
+        <div class="live-dot"></div>
+        <span>Live</span>
+      </div>
+      <span id="last-updated" style="font-size: 12px; color: var(--text-dim);">Updating...</span>
+      <a href="/docs" class="topbar-link">API Docs</a>
+      <a href="https://github.com/mmsadek96/agentgateway" class="topbar-link" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div class="dashboard">
+    <div class="dashboard-header">
+      <h1>Station Monitor</h1>
+      <p>Real-time overview of all agents, certificates, and gateway activity across the AgentTrust network.</p>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Developers</div>
+        <div class="stat-value primary" id="stat-developers">-</div>
+        <div class="stat-sub">registered accounts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Agents</div>
+        <div class="stat-value success" id="stat-agents">-</div>
+        <div class="stat-sub" id="stat-agents-sub">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Actions</div>
+        <div class="stat-value warning" id="stat-actions">-</div>
+        <div class="stat-sub" id="stat-actions-sub">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Certificates Issued</div>
+        <div class="stat-value purple" id="stat-certs">-</div>
+        <div class="stat-sub">total certificates</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Gateway Reports</div>
+        <div class="stat-value primary" id="stat-reports">-</div>
+        <div class="stat-sub">behavior reports</div>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+
+      <!-- Activity Timeline -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Activity (Last 24h)</span>
+          <button class="refresh-btn" onclick="loadTimeline()">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div id="timeline-chart" class="chart-container">
+            <div class="loading"><div class="spinner"></div> Loading timeline...</div>
+          </div>
+          <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-dim);">
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--success);border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Allowed</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--danger);border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Denied</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reputation Distribution -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Reputation Distribution</span>
+          <span id="avg-score" style="font-size: 12px; color: var(--text-dim);">Avg: -</span>
+        </div>
+        <div class="card-body">
+          <div id="distribution-chart">
+            <div class="loading"><div class="spinner"></div> Loading distribution...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Table -->
+      <div class="card full-width">
+        <div class="card-header">
+          <span class="card-title">All Agents</span>
+          <button class="refresh-btn" onclick="loadAgents()">Refresh</button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div style="overflow-x: auto;">
+            <table class="agent-table">
+              <thead>
+                <tr>
+                  <th>Agent</th>
+                  <th>Developer</th>
+                  <th>Status</th>
+                  <th>Score</th>
+                  <th>Actions</th>
+                  <th>Success Rate</th>
+                  <th>Stake</th>
+                  <th>Vouches</th>
+                  <th>Verified</th>
+                </tr>
+              </thead>
+              <tbody id="agents-tbody">
+                <tr><td colspan="9"><div class="loading"><div class="spinner"></div> Loading agents...</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Actions Feed -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Actions</span>
+          <button class="refresh-btn" onclick="loadActions()">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div id="actions-feed" class="action-feed">
+            <div class="loading"><div class="spinner"></div> Loading actions...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificates & Gateways -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Certificates</span>
+          <button class="refresh-btn" onclick="loadCertificates()">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div id="certs-feed">
+            <div class="loading"><div class="spinner"></div> Loading certificates...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connected Gateways -->
+      <div class="card full-width">
+        <div class="card-header">
+          <span class="card-title">Connected Gateways</span>
+          <button class="refresh-btn" onclick="loadGateways()">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div id="gateways-feed">
+            <div class="loading"><div class="spinner"></div> Loading gateways...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = '/dashboard/api';
+
+    // ─── Helper Functions ───
+
+    function formatNumber(n) {
+      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+      return n.toString();
+    }
+
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return hours + 'h ago';
+      return Math.floor(hours / 24) + 'd ago';
+    }
+
+    function getScoreClass(score) {
+      if (score >= 70) return 'score-high';
+      if (score >= 40) return 'score-mid';
+      return 'score-low';
+    }
+
+    function getScoreColor(score) {
+      if (score >= 70) return 'var(--success)';
+      if (score >= 40) return 'var(--warning)';
+      return 'var(--danger)';
+    }
+
+    // ─── Load Overview Stats ───
+
+    async function loadOverview() {
+      try {
+        const res = await fetch(BASE + '/overview');
+        const { data } = await res.json();
+
+        document.getElementById('stat-developers').textContent = formatNumber(data.developers);
+        document.getElementById('stat-agents').textContent = formatNumber(data.agents.active);
+        document.getElementById('stat-agents-sub').textContent =
+          `${data.agents.total} total / ${data.agents.suspended} suspended / ${data.agents.banned} banned`;
+        document.getElementById('stat-actions').textContent = formatNumber(data.actions.total);
+        document.getElementById('stat-actions-sub').textContent = `${data.actions.last24h} in last 24h`;
+        document.getElementById('stat-certs').textContent = formatNumber(data.certificates);
+        document.getElementById('stat-reports').textContent = formatNumber(data.gatewayReports);
+        document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+      } catch (e) {
+        console.error('Failed to load overview:', e);
+      }
+    }
+
+    // ─── Load Agents Table ───
+
+    async function loadAgents() {
+      try {
+        const res = await fetch(BASE + '/agents?sort=reputationScore&order=desc');
+        const { data } = await res.json();
+        const tbody = document.getElementById('agents-tbody');
+
+        if (data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="9">
+            <div class="empty-state">
+              <div class="icon">🤖</div>
+              <p>No agents registered yet. Register your first agent via the API.</p>
+            </div>
+          </td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.map(agent => `
+          <tr>
+            <td>
+              <div style="font-weight: 600; font-size: 13px;">${agent.externalId}</div>
+              <div style="font-size: 11px; color: var(--text-dim); font-family: monospace;">${agent.id.substring(0, 8)}...</div>
+            </td>
+            <td style="color: var(--text-dim); font-size: 13px;">${agent.developer}</td>
+            <td><span class="status-badge status-${agent.status}">${agent.status}</span></td>
+            <td><span class="score-badge ${getScoreClass(agent.reputationScore)}">${agent.reputationScore}</span></td>
+            <td style="font-size: 13px;">${agent.totalActions}</td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="flex: 1; height: 4px; background: var(--border); border-radius: 2px; max-width: 60px;">
+                  <div style="height: 100%; width: ${agent.successRate}%; background: ${agent.successRate >= 80 ? 'var(--success)' : agent.successRate >= 50 ? 'var(--warning)' : 'var(--danger)'}; border-radius: 2px;"></div>
+                </div>
+                <span style="font-size: 12px; color: var(--text-dim);">${agent.successRate}%</span>
+              </div>
+            </td>
+            <td style="font-size: 13px; color: ${agent.stakeAmount > 0 ? 'var(--success)' : 'var(--text-dim)'}">
+              ${agent.stakeAmount > 0 ? '$' + agent.stakeAmount.toFixed(2) : '-'}
+            </td>
+            <td style="font-size: 13px;">${agent.vouchesReceived}</td>
+            <td>${agent.identityVerified ? '<span style="color: var(--success);">Yes</span>' : '<span style="color: var(--text-dim);">No</span>'}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load agents:', e);
+        document.getElementById('agents-tbody').innerHTML =
+          `<tr><td colspan="9" style="text-align: center; color: var(--danger);">Failed to load agents</td></tr>`;
+      }
+    }
+
+    // ─── Load Recent Actions Feed ───
+
+    async function loadActions() {
+      try {
+        const res = await fetch(BASE + '/actions/recent?limit=20');
+        const { data } = await res.json();
+        const feed = document.getElementById('actions-feed');
+
+        if (data.length === 0) {
+          feed.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No actions recorded yet.</p></div>`;
+          return;
+        }
+
+        feed.innerHTML = data.map(a => `
+          <div class="action-item">
+            <div class="action-icon ${a.decision}">
+              ${a.decision === 'allowed' ? '✓' : '✕'}
+            </div>
+            <div class="action-details">
+              <div class="action-title">
+                <span style="color: var(--primary);">${a.agentExternalId}</span> →
+                <code style="background: var(--bg); padding: 1px 6px; border-radius: 3px; font-size: 12px;">${a.actionType}</code>
+              </div>
+              <div class="action-meta">
+                ${a.decision === 'allowed' ? 'Allowed' : 'Denied'} — Score: ${a.agentScore} — ${a.reason}
+              </div>
+            </div>
+            <div class="action-time">${timeAgo(a.createdAt)}</div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load actions:', e);
+        document.getElementById('actions-feed').innerHTML =
+          `<div style="text-align: center; color: var(--danger); padding: 20px;">Failed to load actions</div>`;
+      }
+    }
+
+    // ─── Load Activity Timeline ───
+
+    async function loadTimeline() {
+      try {
+        const res = await fetch(BASE + '/activity/timeline');
+        const { data } = await res.json();
+        const container = document.getElementById('timeline-chart');
+
+        const maxTotal = Math.max(...data.map(d => d.total), 1);
+
+        if (data.every(d => d.total === 0)) {
+          container.innerHTML = `<div class="empty-state"><div class="icon">📊</div><p>No activity in the last 24 hours.</p></div>`;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="bar-chart">
+            ${data.map(d => {
+              const allowedH = Math.max((d.allowed / maxTotal) * 140, d.allowed > 0 ? 4 : 0);
+              const deniedH = Math.max((d.denied / maxTotal) * 140, d.denied > 0 ? 4 : 0);
+              const hour = d.hour.substring(11, 13) + ':00';
+              return `
+                <div class="bar-group">
+                  <div class="bar denied" style="height: ${deniedH}px;" title="${d.denied} denied"></div>
+                  <div class="bar allowed" style="height: ${allowedH}px;" title="${d.allowed} allowed"></div>
+                  <div class="bar-label">${hour}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      } catch (e) {
+        console.error('Failed to load timeline:', e);
+        document.getElementById('timeline-chart').innerHTML =
+          `<div style="text-align: center; color: var(--danger); padding: 20px;">Failed to load timeline</div>`;
+      }
+    }
+
+    // ─── Load Reputation Distribution ───
+
+    async function loadDistribution() {
+      try {
+        const res = await fetch(BASE + '/reputation/distribution');
+        const { data } = await res.json();
+        const container = document.getElementById('distribution-chart');
+
+        document.getElementById('avg-score').textContent = `Avg: ${data.averageScore}`;
+
+        const dist = data.distribution;
+        const maxCount = Math.max(...Object.values(dist), 1);
+
+        if (data.totalAgents === 0) {
+          container.innerHTML = `<div class="empty-state"><div class="icon">📈</div><p>No agents to show distribution.</p></div>`;
+          return;
+        }
+
+        const colors = [
+          'var(--danger)', 'var(--danger)', '#f97316', 'var(--warning)', 'var(--warning)',
+          '#84cc16', 'var(--success)', 'var(--success)', 'var(--primary)', 'var(--purple)'
+        ];
+
+        container.innerHTML = `
+          <div class="distribution-bars">
+            ${Object.entries(dist).map(([range, count], i) => {
+              const h = Math.max((count / maxCount) * 100, count > 0 ? 6 : 2);
+              return `
+                <div class="dist-bar-wrapper">
+                  <div class="dist-count">${count}</div>
+                  <div class="dist-bar" style="height: ${h}px; background: ${colors[i]};"></div>
+                  <div class="dist-label">${range}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      } catch (e) {
+        console.error('Failed to load distribution:', e);
+      }
+    }
+
+    // ─── Load Certificates ───
+
+    async function loadCertificates() {
+      try {
+        const res = await fetch(BASE + '/certificates/recent?limit=10');
+        const { data } = await res.json();
+        const container = document.getElementById('certs-feed');
+
+        if (data.length === 0) {
+          container.innerHTML = `<div class="empty-state"><div class="icon">🔐</div><p>No certificates issued yet.</p></div>`;
+          return;
+        }
+
+        container.innerHTML = data.map(c => {
+          let statusClass = 'cert-valid';
+          let statusText = 'Valid';
+          if (c.revoked) { statusClass = 'cert-revoked'; statusText = 'Revoked'; }
+          else if (c.expired) { statusClass = 'cert-expired'; statusText = 'Expired'; }
+
+          return `
+            <div class="cert-item">
+              <div>
+                <div class="cert-agent">${c.agentExternalId}</div>
+                <div class="cert-jti">${c.jti.substring(0, 12)}...</div>
+              </div>
+              <div style="text-align: center;">
+                <span class="score-badge ${getScoreClass(c.scoreAtIssuance)}" style="font-size: 11px;">${c.scoreAtIssuance}</span>
+              </div>
+              <div style="text-align: right;">
+                <span class="cert-status ${statusClass}">${statusText}</span>
+                <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">${timeAgo(c.issuedAt)}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Failed to load certificates:', e);
+      }
+    }
+
+    // ─── Load Gateways ───
+
+    async function loadGateways() {
+      try {
+        const res = await fetch(BASE + '/gateways');
+        const { data } = await res.json();
+        const container = document.getElementById('gateways-feed');
+
+        if (data.length === 0) {
+          container.innerHTML = `<div class="empty-state"><div class="icon">🌐</div><p>No gateways have reported yet. Install @agent-trust/gateway on a website to see data here.</p></div>`;
+          return;
+        }
+
+        container.innerHTML = `
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+            ${data.map(g => `
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+                <div class="gateway-name">${g.gatewayId}</div>
+                <div class="gateway-stats" style="flex-wrap: wrap;">
+                  <span>Reports: <span class="gateway-stat-value">${g.totalReports}</span></span>
+                  <span>Actions: <span class="gateway-stat-value">${g.totalActions}</span></span>
+                  <span>Success: <span class="gateway-stat-value" style="color: var(--success);">${g.successRate}%</span></span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-top: 8px;">Last report: ${timeAgo(g.lastReport)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch (e) {
+        console.error('Failed to load gateways:', e);
+      }
+    }
+
+    // ─── Initialize & Auto-Refresh ───
+
+    async function loadAll() {
+      await Promise.all([
+        loadOverview(),
+        loadAgents(),
+        loadActions(),
+        loadTimeline(),
+        loadDistribution(),
+        loadCertificates(),
+        loadGateways()
+      ]);
+    }
+
+    // Initial load
+    loadAll();
+
+    // Auto-refresh every 30 seconds
+    setInterval(loadAll, 30000);
+  </script>
+</body>
+</html>
