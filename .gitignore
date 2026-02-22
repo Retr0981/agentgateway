@@ -9,3 +9,7 @@ nul
 # Packages build output
 packages/*/dist/
 packages/*/node_modules/
+
+# Confidential internal docs
+STRATEGY.md
+launch/
