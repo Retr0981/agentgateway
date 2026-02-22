@@ -35,6 +35,7 @@ export class AgentClient {
   // Certificate caching
   private currentCertificate: string | null = null;
   private certificateExpiry: number = 0;
+  private currentScope: string[] | undefined;
 
   constructor(config: AgentClientConfig) {
     this.stationUrl = config.stationUrl.replace(/\/+$/, '');
@@ -48,15 +49,30 @@ export class AgentClient {
    * Request a clearance certificate from the station.
    * Caches the certificate and reuses it until 30 seconds before expiry.
    * @param forceRefresh - Force a new certificate even if cached one is valid
+   * @param scope - Optional scope/purpose manifest — limits which gateway actions this certificate authorizes.
+   *                Example: ["product-search", "view-inventory"] restricts the agent to only those actions.
+   *                If omitted, the certificate has no scope restrictions (wildcard).
    */
-  async getCertificate(forceRefresh = false): Promise<string> {
-    // Return cached certificate if still valid (with 30s buffer)
+  async getCertificate(forceRefresh = false, scope?: string[] | null): Promise<string> {
+    // If scope is explicitly passed (including null to clear), update the stored scope
+    // If scope is not passed (undefined), keep using the existing stored scope
+    // Pass null to explicitly clear scope, pass undefined (or omit) to keep current scope
+    const effectiveScope = scope === undefined ? this.currentScope : (scope === null ? undefined : scope);
+    const scopeChanged = JSON.stringify(effectiveScope) !== JSON.stringify(this.currentScope);
+
+    // Return cached certificate if still valid (with 30s buffer) and scope hasn't changed
     if (
       !forceRefresh &&
+      !scopeChanged &&
       this.currentCertificate &&
       Date.now() < this.certificateExpiry - 30_000
     ) {
       return this.currentCertificate;
+    }
+
+    const body: Record<string, unknown> = { agentId: this.agentId };
+    if (effectiveScope && effectiveScope.length > 0) {
+      body.scope = effectiveScope;
     }
 
     const response = await fetch(`${this.stationUrl}/certificates/request`, {
@@ -65,7 +81,7 @@ export class AgentClient {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ agentId: this.agentId })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
@@ -77,6 +93,7 @@ export class AgentClient {
 
     this.currentCertificate = data.token;
     this.certificateExpiry = new Date(data.expiresAt).getTime();
+    this.currentScope = effectiveScope;
 
     return data.token;
   }
@@ -210,6 +227,32 @@ export class AgentClient {
     }
 
     return results;
+  }
+
+  // ─── Scope Management ───
+
+  /**
+   * Set a default scope for all future certificate requests.
+   * The scope restricts which gateway actions this agent can perform.
+   * Pass undefined to clear the scope (wildcard access).
+   *
+   * Example:
+   *   agent.setScope(['product-search', 'view-inventory']);
+   */
+  setScope(scope: string[] | undefined): void {
+    if (JSON.stringify(scope) !== JSON.stringify(this.currentScope)) {
+      this.currentScope = scope;
+      // Invalidate cached certificate since scope changed
+      this.currentCertificate = null;
+      this.certificateExpiry = 0;
+    }
+  }
+
+  /**
+   * Get the current scope set on this client.
+   */
+  getScope(): string[] | undefined {
+    return this.currentScope;
   }
 
   // ─── Utility ───

@@ -83,6 +83,8 @@ export interface CertificatePayload {
   status: string;
   totalActions: number;
   successRate: number | null;
+  /** Declared scope/purpose manifest — limits which actions this certificate authorizes */
+  scope?: string[];
   iat: number;
   exp: number;
   iss: string;

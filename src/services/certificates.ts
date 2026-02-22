@@ -15,7 +15,8 @@ const ISSUER = 'agent-trust-station';
  */
 export async function issueCertificate(
   agentExternalId: string,
-  developerId: string
+  developerId: string,
+  scope?: string[]
 ): Promise<CertificateResult> {
   // Look up the agent
   const agent = await prisma.agent.findUnique({
@@ -55,6 +56,8 @@ export async function issueCertificate(
     successRate: agent.totalActions > 0
       ? Math.round((agent.successfulActions / agent.totalActions) * 100) / 100
       : null,
+    // Include scope manifest if provided — limits which gateway actions this cert authorizes
+    ...(scope && scope.length > 0 ? { scope } : {}),
     iss: ISSUER,
     jti
   };

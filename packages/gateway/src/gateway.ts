@@ -77,10 +77,11 @@ export class AgentGateway {
         gatewayId: this.config.gatewayId,
         actions: this.actionRegistry.getDiscoveryPayload(),
         certificateIssuer: 'agent-trust-station',
-        version: '1.0.0',
+        version: '1.2.0',
         security: {
           behavioralTracking: true,
-          mlAnalysis: this.mlAnalyzer.isAvailable()
+          mlAnalysis: this.mlAnalyzer.isAvailable(),
+          scopeEnforcement: true
         }
       };
       res.json(payload);
@@ -183,6 +184,51 @@ export class AgentGateway {
         return;
       }
 
+      // ─── Scope Enforcement: Check certificate scope manifest ───
+      // If the certificate declares a scope, only actions listed in scope are allowed.
+      // This catches misaligned behavior — e.g., a "product-search" agent trying to access "checkout".
+      if (certificate.scope && certificate.scope.length > 0) {
+        if (!certificate.scope.includes(actionName)) {
+          // Record the scope violation
+          this.behaviorTracker.recordAction(
+            certificate.sub,
+            certificate.agentExternalId,
+            actionName,
+            params,
+            false,
+            false  // Not a score violation — it's a scope violation
+          );
+
+          // Report scope violation to station
+          this.stationClient.submitReport({
+            agentId: certificate.sub,
+            gatewayId: this.config.gatewayId,
+            certificateJti: certificate.jti,
+            actions: [{
+              actionType: actionName,
+              outcome: 'failure',
+              metadata: {
+                reason: 'scope_violation',
+                declaredScope: certificate.scope,
+                attemptedAction: actionName,
+                params
+              },
+              performedAt: new Date().toISOString()
+            }]
+          }).catch(err => {
+            console.error(`[@agent-trust/gateway] Failed to submit scope violation report:`, err.message);
+          });
+
+          res.status(403).json({
+            success: false,
+            error: `Action "${actionName}" is outside this certificate's declared scope`,
+            declaredScope: certificate.scope,
+            hint: 'Request a new certificate with the correct scope, or use a wildcard scope.'
+          });
+          return;
+        }
+      }
+
       // ─── ML Analysis: Check params for threats (prompt injection, malicious URLs) ───
       if (this.mlAnalyzer.isAvailable()) {
         const mlResult = await this.mlAnalyzer.analyzeRequest(params, certificate.sub);
@@ -238,7 +284,8 @@ export class AgentGateway {
         externalId: certificate.agentExternalId,
         developerId: certificate.developerId,
         score: certificate.score,
-        identityVerified: certificate.identityVerified
+        identityVerified: certificate.identityVerified,
+        scope: certificate.scope
       };
 
       // Check if score meets threshold BEFORE executing

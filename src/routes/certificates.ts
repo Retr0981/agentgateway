@@ -12,14 +12,25 @@ const router = Router();
 router.post('/request', authenticateApiKey, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const developerId = req.developer!.id;
-    const { agentId } = req.body;
+    const { agentId, scope } = req.body;
 
     if (!agentId) {
       res.status(400).json({ success: false, error: 'agentId required' });
       return;
     }
 
-    const result = await issueCertificate(agentId, developerId);
+    // Validate scope if provided — must be an array of non-empty strings
+    if (scope !== undefined) {
+      if (!Array.isArray(scope) || !scope.every((s: unknown) => typeof s === 'string' && s.length > 0)) {
+        res.status(400).json({
+          success: false,
+          error: 'scope must be an array of non-empty strings (e.g., ["product-search", "view-inventory"])'
+        });
+        return;
+      }
+    }
+
+    const result = await issueCertificate(agentId, developerId, scope);
 
     res.json({
       success: true,
@@ -85,6 +96,7 @@ router.get('/verify', async (req: Request, res: Response) => {
           status: payload.status,
           totalActions: payload.totalActions,
           successRate: payload.successRate,
+          scope: payload.scope || null,
           issuedAt: new Date(payload.iat * 1000).toISOString(),
           expiresAt: new Date(payload.exp * 1000).toISOString()
         }

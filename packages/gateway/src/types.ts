@@ -107,6 +107,9 @@ export interface AgentContext {
 
   /** Whether the agent's identity has been verified */
   identityVerified: boolean;
+
+  /** Declared scope/purpose manifest — which actions this agent is authorized to perform */
+  scope?: string[];
 }
 
 // ─── Action Results ───
@@ -143,6 +146,8 @@ export interface CertificatePayload {
   status: string;
   totalActions: number;
   successRate: number | null;
+  /** Declared scope/purpose manifest — limits which actions this certificate authorizes */
+  scope?: string[];
   iat: number;
   exp: number;
   iss: string;
