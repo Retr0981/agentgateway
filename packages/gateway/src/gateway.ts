@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { StationClient } from './station-client';
 import { ActionRegistry } from './action-registry';
 import { BehaviorTracker } from './behavior-tracker';
+import { MLBehaviorAnalyzer } from './ml-analyzer';
 import { createCertificateMiddleware } from './middleware/certificate';
 import {
   GatewayConfig,
@@ -23,6 +24,7 @@ export class AgentGateway {
   private stationClient: StationClient;
   private actionRegistry: ActionRegistry;
   private behaviorTracker: BehaviorTracker;
+  private mlAnalyzer: MLBehaviorAnalyzer;
   private config: GatewayConfig;
 
   constructor(config: GatewayConfig) {
@@ -34,6 +36,12 @@ export class AgentGateway {
     );
     this.actionRegistry = new ActionRegistry(config.actions);
     this.behaviorTracker = new BehaviorTracker(config.behavior ?? {});
+    this.mlAnalyzer = new MLBehaviorAnalyzer(config.ml ?? {});
+
+    // Initialize ML models in the background (non-blocking)
+    this.mlAnalyzer.initialize().catch(() => {
+      // Silently handled — ML is optional
+    });
   }
 
   /**
@@ -41,6 +49,13 @@ export class AgentGateway {
    */
   getBehaviorTracker(): BehaviorTracker {
     return this.behaviorTracker;
+  }
+
+  /**
+   * Get the ML analyzer instance (for monitoring/status checks).
+   */
+  getMLAnalyzer(): MLBehaviorAnalyzer {
+    return this.mlAnalyzer;
   }
 
   /**
@@ -58,11 +73,15 @@ export class AgentGateway {
      * Agents call this to discover what this gateway offers.
      */
     router.get('/.well-known/agent-gateway', (_req, res) => {
-      const payload: DiscoveryPayload = {
+      const payload = {
         gatewayId: this.config.gatewayId,
         actions: this.actionRegistry.getDiscoveryPayload(),
         certificateIssuer: 'agent-trust-station',
-        version: '1.0.0'
+        version: '1.0.0',
+        security: {
+          behavioralTracking: true,
+          mlAnalysis: this.mlAnalyzer.isAvailable()
+        }
       };
       res.json(payload);
     });
@@ -162,6 +181,55 @@ export class AgentGateway {
           availableActions: this.actionRegistry.getActionNames()
         });
         return;
+      }
+
+      // ─── ML Analysis: Check params for threats (prompt injection, malicious URLs) ───
+      if (this.mlAnalyzer.isAvailable()) {
+        const mlResult = await this.mlAnalyzer.analyzeRequest(params, certificate.sub);
+        if (!mlResult.safe) {
+          // Record the ML-detected threat as a behavioral event
+          this.behaviorTracker.recordAction(
+            certificate.sub,
+            certificate.agentExternalId,
+            actionName,
+            params,
+            false,
+            false
+          );
+
+          // Report to station
+          this.stationClient.submitReport({
+            agentId: certificate.sub,
+            gatewayId: this.config.gatewayId,
+            certificateJti: certificate.jti,
+            actions: [{
+              actionType: actionName,
+              outcome: 'failure',
+              metadata: {
+                reason: 'ml_threat_detected',
+                threats: mlResult.threats,
+                analysisTimeMs: mlResult.analysisTimeMs,
+                params
+              },
+              performedAt: new Date().toISOString()
+            }]
+          }).catch(err => {
+            console.error(`[@agent-trust/gateway] Failed to submit ML threat report:`, err.message);
+          });
+
+          res.status(403).json({
+            success: false,
+            error: 'Request blocked: Threat detected in parameters',
+            threats: mlResult.threats.map(t => ({
+              type: t.type,
+              field: t.field,
+              confidence: t.confidence
+            })),
+            analysisTimeMs: mlResult.analysisTimeMs,
+            hint: 'Your request parameters contain content flagged as potentially malicious.'
+          });
+          return;
+        }
       }
 
       // Build agent context from certificate

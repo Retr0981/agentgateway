@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import type { MLAnalyzerConfig } from './ml-analyzer';
 
 // ─── Gateway Configuration ───
 
@@ -20,6 +21,9 @@ export interface GatewayConfig {
 
   /** Behavioral tracking configuration (optional — enabled by default) */
   behavior?: BehaviorConfig;
+
+  /** ML-based threat detection configuration (optional — auto-enabled if @huggingface/transformers is installed) */
+  ml?: MLAnalyzerConfig;
 }
 
 // ─── Behavioral Tracking Configuration ───

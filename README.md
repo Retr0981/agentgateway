@@ -13,7 +13,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
-[Live Demo](https://agentgateway-6f041c655eb3.herokuapp.com/) &bull; [API Docs](https://agentgateway-6f041c655eb3.herokuapp.com/docs) &bull; [Quick Start](#quick-start) &bull; [How It Works](#how-it-works) &bull; [Contributing](#contributing)
+[Live Demo](https://agentgateway-6f041c655eb3.herokuapp.com/) &bull; [Dashboard](https://agentgateway-6f041c655eb3.herokuapp.com/dashboard) &bull; [API Docs](https://agentgateway-6f041c655eb3.herokuapp.com/docs) &bull; [Quick Start](#quick-start) &bull; [How It Works](#how-it-works) &bull; [Contributing](#contributing)
 
 </div>
 
@@ -233,6 +233,46 @@ const gateway = createGateway({
 
 Each agent gets a **behavioral score (0-100)** per session. Violations degrade the score. Drop below threshold → **blocked mid-session**. Behavioral data is reported to the Station, so bad behavior follows the agent everywhere.
 
+### ML-Powered Threat Detection (Optional)
+
+Install `@huggingface/transformers` to enable AI-powered security — runs locally via ONNX Runtime, no API calls:
+
+```bash
+npm install @huggingface/transformers
+```
+
+```typescript
+const gateway = createGateway({
+  // ... actions config ...
+  ml: {
+    injectionThreshold: 0.85,   // Confidence for prompt injection detection
+    urlThreshold: 0.80,         // Confidence for malicious URL detection
+    onThreatDetected: (threat, agentId) => {
+      console.warn(`ML THREAT from ${agentId}: ${threat.type} in ${threat.field}`);
+    }
+  }
+});
+```
+
+| Model | What it detects | Size |
+|-------|----------------|------|
+| Prompt Injection Defender | Jailbreak attempts in request parameters | 4.4M params |
+| Malicious URL Detector | Phishing/malware URLs in agent params | 67M params |
+
+The ML layer sits between rule-based checks and action execution. If `@huggingface/transformers` isn't installed, the gateway works fine with rule-based detection only.
+
+### Live Dashboard
+
+Monitor your Station in real-time at `/dashboard`:
+
+- Agent reputation overview and distribution
+- Live action feed (allowed/denied)
+- Activity timeline (last 24h)
+- Certificate tracking
+- Connected gateway monitoring
+
+**Live:** [agentgateway-6f041c655eb3.herokuapp.com/dashboard](https://agentgateway-6f041c655eb3.herokuapp.com/dashboard)
+
 ## API Reference
 
 | Method | Endpoint | Auth | Description |
@@ -293,11 +333,13 @@ npm run dev
 
 ## Roadmap
 
-- [ ] Web dashboard for real-time reputation monitoring
+- [x] Web dashboard for real-time agent monitoring
+- [x] ML-powered threat detection (prompt injection, malicious URLs)
+- [x] Real-time behavioral tracking (6 detection algorithms)
+- [ ] Blockchain integration (on-chain reputation, staking with real tokens)
 - [ ] Webhook notifications for trust events
-- [ ] Multi-chain staking (ETH, SOL, USDC)
+- [ ] Advanced ML behavioral models
 - [ ] Agent-to-agent trust delegation
-- [ ] GraphQL API
 - [ ] Rate limiting by trust tier
 - [ ] SDK for Python, Go, Rust
 - [ ] Reputation decay over inactivity

@@ -9,6 +9,7 @@ export { AgentGateway, createGateway } from './gateway';
 export { StationClient } from './station-client';
 export { ActionRegistry } from './action-registry';
 export { BehaviorTracker } from './behavior-tracker';
+export { MLBehaviorAnalyzer, createMLAnalyzer } from './ml-analyzer';
 
 export type {
   GatewayConfig,
@@ -27,3 +28,10 @@ export type {
   SessionStats,
   AgentSession
 } from './types';
+
+export type {
+  MLAnalyzerConfig,
+  MLThreat,
+  MLThreatType,
+  MLAnalysisResult
+} from './ml-analyzer';
