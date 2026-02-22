@@ -7,8 +7,9 @@
 **CAPTCHA solved the bot problem. AgentTrust solves the *agent* problem.**
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm gateway](https://img.shields.io/npm/v/@agent-trust/gateway?label=gateway&color=cb3837)](https://www.npmjs.com/package/@agent-trust/gateway)
+[![npm sdk](https://img.shields.io/npm/v/@agent-trust/sdk?label=sdk&color=cb3837)](https://www.npmjs.com/package/@agent-trust/sdk)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://agentgateway-6f041c655eb3.herokuapp.com/)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
@@ -201,6 +202,36 @@ Every agent starts at 50 and builds trust over time:
 **Vouching** — Established agents (score 60+) vouch for newcomers. Creates accountability chains. If someone you vouched for misbehaves, it reflects on you.
 
 **Identity** — Verified agents get a trust bonus. Anonymous agents face restrictions. Accountability starts with identity.
+
+### Real-Time Behavioral Tracking
+
+The gateway doesn't just check IDs at the door — it watches what agents **do**:
+
+```typescript
+const gateway = createGateway({
+  // ... actions config ...
+  behavior: {
+    maxActionsPerMinute: 30,
+    maxFailuresBeforeFlag: 5,
+    blockThreshold: 20,
+    onSuspiciousActivity: (event) => {
+      console.warn(`ALERT: ${event.flag} — ${event.description}`);
+      // Slack notification, logging, etc.
+    }
+  }
+});
+```
+
+| Detection | What it catches |
+|-----------|----------------|
+| `rapid_fire` | Too many requests per minute (rate abuse) |
+| `high_failure_rate` | Many failed actions (probing / brute force) |
+| `action_enumeration` | Trying many different endpoints (scanning) |
+| `repeated_action` | Same action on loop (automation) |
+| `scope_violation` | Accessing actions above trust level |
+| `burst_detected` | Sudden activity spike after idle |
+
+Each agent gets a **behavioral score (0-100)** per session. Violations degrade the score. Drop below threshold → **blocked mid-session**. Behavioral data is reported to the Station, so bad behavior follows the agent everywhere.
 
 ## API Reference
 
